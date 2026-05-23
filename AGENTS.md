@@ -101,7 +101,7 @@ mode = "none"    # "tokens" | "webhook" | "none"
 
 ## 消息协议
 
-协议详见 [doc/protocol.md](../doc/protocol.md)。Relay 处理的消息类型：
+协议详见 [doc/protocol.md](../doc/protocol.md)和[doc/sync-architecture.md](../doc/sync-architecture.md)。Relay 处理的消息类型：
 
 | type | 方向 | 说明 |
 |---|---|---|
