@@ -7,24 +7,29 @@ import (
 
 	"github.com/coder/websocket"
 
+	"xlip-relay/internal/auth"
 	"xlip-relay/internal/client"
+	"xlip-relay/internal/config"
 	"xlip-relay/internal/hub"
 )
 
 // Server 是 Relay HTTP/WebSocket 服务。
 type Server struct {
-	hub        *hub.Hub
-	httpServer *http.Server
+	hub           *hub.Hub
+	httpServer    *http.Server
+	authenticator auth.Authenticator
 }
 
 // New 创建一个监听指定地址的 Server。
-func New(addr string) *Server {
+func New(cfg *config.Config) *Server {
 	h := hub.New()
+	authenticator := auth.NewAuthenticator(&cfg.Auth)
 
 	s := &Server{
-		hub: h,
+		hub:           h,
+		authenticator: authenticator,
 		httpServer: &http.Server{
-			Addr: addr,
+			Addr: cfg.Server.Addr,
 		},
 	}
 
@@ -48,6 +53,26 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // handleWebSocket 将 HTTP 连接升级为 WebSocket 并启动客户端读写协程。
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// 从 URL query 提取 device_id。
+	deviceID := r.URL.Query().Get("device_id")
+	if deviceID == "" {
+		http.Error(w, "missing device_id parameter", http.StatusUnauthorized)
+		return
+	}
+
+	// WS 升级前认证。
+	allowed, err := s.authenticator.Authenticate(deviceID)
+	if err != nil {
+		log.Printf("认证失败 device_id=%s: %v", deviceID, err)
+		http.Error(w, "authentication error", http.StatusServiceUnavailable)
+		return
+	}
+	if !allowed {
+		log.Printf("认证拒绝 device_id=%s", deviceID)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"*"},
 	})
@@ -56,6 +81,6 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := client.New(conn, s.hub)
+	c := client.New(conn, s.hub, deviceID)
 	go c.Run(r.Context())
 }

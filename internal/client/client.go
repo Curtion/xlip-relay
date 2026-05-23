@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,27 +14,32 @@ import (
 )
 
 const (
-	// ReadTimeout 等待消息的最大时长，超时视为连接已死。
-	ReadTimeout = 60 * time.Second
+	// PongTimeout 无心跳判定超时时间。
+	PongTimeout = 60 * time.Second
+	// PingInterval 发送 Ping 的间隔。
+	PingInterval = 30 * time.Second
 	// SendBufSize 出站消息 channel 缓冲区大小。
 	SendBufSize = 64
 )
 
 // Client 表示一个 WebSocket 连接。
 type Client struct {
-	conn   *websocket.Conn
-	hub    *hub.Hub
-	info   hub.ClientInfo
-	send   chan []byte
-	joined bool // 首次 join_group 处理后置为 true
+	conn     *websocket.Conn
+	hub      *hub.Hub
+	info     hub.ClientInfo
+	send     chan []byte
+	deviceID string // WS 升级阶段认证的 device_id
+	joined   bool   // 首次 join_group 处理后置为 true
 }
 
 // New 为给定的 WebSocket 连接创建 Client。
-func New(conn *websocket.Conn, h *hub.Hub) *Client {
+// deviceID 来自 WS 升级阶段的 URL query 认证。
+func New(conn *websocket.Conn, h *hub.Hub, deviceID string) *Client {
 	c := &Client{
-		conn: conn,
-		hub:  h,
-		send: make(chan []byte, SendBufSize),
+		conn:     conn,
+		hub:      h,
+		send:     make(chan []byte, SendBufSize),
+		deviceID: deviceID,
 	}
 	c.info.Send = c.send
 	return c
@@ -70,7 +76,7 @@ func (c *Client) readPump(ctx context.Context) {
 	}()
 
 	for {
-		readCtx, readCancel := context.WithTimeout(ctx, ReadTimeout)
+		readCtx, readCancel := context.WithTimeout(ctx, PongTimeout)
 		msgType, data, err := c.conn.Read(readCtx)
 		readCancel()
 
@@ -96,7 +102,11 @@ func (c *Client) readPump(ctx context.Context) {
 }
 
 // writePump 从 send channel 读取消息并写入 WebSocket 连接。
+// 同时每 PingInterval 发送一次 Ping 帧保持连接活跃。
 func (c *Client) writePump(ctx context.Context) {
+	ticker := time.NewTicker(PingInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case msg, ok := <-c.send:
@@ -110,6 +120,14 @@ func (c *Client) writePump(ctx context.Context) {
 			writeCancel()
 			if err != nil {
 				log.Printf("write error: %v", err)
+				return
+			}
+		case <-ticker.C:
+			pingCtx, pingCancel := context.WithTimeout(ctx, 5*time.Second)
+			err := c.conn.Ping(pingCtx)
+			pingCancel()
+			if err != nil {
+				log.Printf("ping error: %v", err)
 				return
 			}
 		case <-ctx.Done():
@@ -130,6 +148,11 @@ func (c *Client) handleMessage(data []byte) error {
 	switch msgType {
 	case protocol.TypeJoinGroup:
 		joinMsg := msg.(protocol.JoinGroupMsg)
+		// 校验 join_group 中的 device_id 与 WS 升级阶段认证的 device_id 一致。
+		if joinMsg.DeviceID != c.deviceID {
+			c.sendError(protocol.CodeAuthFailed, "device_id mismatch")
+			return fmt.Errorf("device_id mismatch: join_group=%s, ws_auth=%s", joinMsg.DeviceID, c.deviceID)
+		}
 		c.hub.Register(&c.info, joinMsg)
 		c.joined = true
 		return nil

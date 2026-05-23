@@ -1,0 +1,18 @@
+# xlip-relay 配置文件
+
+[server]
+addr = ":8080"
+
+[auth]
+mode = "none"    # "tokens" | "webhook" | "none"
+
+# 静态白名单模式：允许连接的 device_id 列表
+# [auth.tokens]
+# "550e8400-e29b-41d4-a716-446655440000"    # Home Laptop
+# "6ba7b810-9dad-11d1-80b4-00c04fd430c8"    # Office PC
+
+# Webhook 动态验证模式
+# [auth.webhook]
+# url = "https://auth.xlip.com/api/check-device"
+# cache_ttl = 300    # 缓存有效期（秒）
+# timeout = 3        # 请求超时（秒）
