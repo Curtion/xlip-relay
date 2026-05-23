@@ -66,11 +66,11 @@ mode = "none"    # "tokens" | "webhook" | "none"
 
 ### 认证模式
 
-| 模式 | 说明 | 适用场景 |
-|------|------|---------|
-| `none` | 不验证，任何客户端可连接 | 内网/开发环境 |
-| `tokens` | 静态 device_id 白名单 | 自部署、个人/小团队 |
-| `webhook` | HTTP 请求 Auth Server 验证 + LRU 缓存 | 官方托管、商业化 |
+| 模式      | 说明                                  | 适用场景            |
+| --------- | ------------------------------------- | ------------------- |
+| `none`    | 不验证，任何客户端可连接              | 内网/开发环境       |
+| `tokens`  | 静态 device_id 白名单                 | 自部署、个人/小团队 |
+| `webhook` | HTTP 请求 Auth Server 验证 + LRU 缓存 | 官方托管、商业化    |
 
 客户端连接时通过 URL query 传递 `device_id`：`ws://relay:8080/ws?device_id=xxx`。认证在 WS 升级阶段完成，失败返回 HTTP 401。
 
@@ -103,14 +103,14 @@ mode = "none"    # "tokens" | "webhook" | "none"
 
 协议详见 [doc/protocol.md](../doc/protocol.md)和[doc/sync-architecture.md](../doc/sync-architecture.md)。Relay 处理的消息类型：
 
-| type | 方向 | 说明 |
-|---|---|---|
-| `join_group` | Client → Relay | 注册到同步组 |
-| `join_group_resp` | Relay → Client | 返回已知设备和最新剪贴板缓存 |
-| `clipboard_sync` | Client → Relay → 同组 | 透传加密剪贴板内容 |
-| `device_online` | Relay → 同组 | 广播设备上线 |
-| `device_offline` | Relay → 同组 | 广播设备下线 |
-| `error` | Relay → Client | 错误响应 |
+| type              | 方向                  | 说明                         |
+| ----------------- | --------------------- | ---------------------------- |
+| `join_group`      | Client → Relay        | 注册到同步组                 |
+| `join_group_resp` | Relay → Client        | 返回已知设备和最新剪贴板缓存 |
+| `clipboard_sync`  | Client → Relay → 同组 | 透传加密剪贴板内容           |
+| `device_online`   | Relay → 同组          | 广播设备上线                 |
+| `device_offline`  | Relay → 同组          | 广播设备下线                 |
+| `error`           | Relay → Client        | 错误响应                     |
 
 `clipboard_sync` 使用**原始字节透传**（不经二次序列化），通过 `json.RawMessage` 缓存并原样广播。
 

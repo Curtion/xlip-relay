@@ -4,7 +4,7 @@
 addr = ":8080"
 
 [auth]
-mode = "none"    # "tokens" | "webhook" | "none"
+mode = "none" # "tokens" | "webhook" | "none"
 
 # 静态白名单模式：允许连接的 device_id 列表
 # [auth.tokens]
