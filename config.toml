@@ -1,7 +1,7 @@
 # xlip-relay 配置文件
 
 [server]
-addr = ":8080"
+addr = ":19090"
 
 [auth]
 mode = "none" # "tokens" | "webhook" | "none"

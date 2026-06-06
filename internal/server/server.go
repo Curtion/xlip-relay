@@ -82,5 +82,5 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := client.New(conn, s.hub, deviceID)
-	go c.Run(r.Context())
+	go c.Run(context.Background())
 }
