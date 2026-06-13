@@ -20,7 +20,6 @@ const (
 const (
 	CodeAuthFailed     = "auth_failed"
 	CodeInvalidMessage = "invalid_message"
-	CodeRateLimited    = "rate_limited"
 	CodeInternalError  = "internal_error"
 )
 
