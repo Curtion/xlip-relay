@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	// PongTimeout 无心跳判定超时时间。
-	PongTimeout = 60 * time.Second
+	// PongTimeout 发送 Ping 后等待 Pong 的超时时间，超时则判定连接已死。
+	PongTimeout = 30 * time.Second
 	// PingInterval 发送 Ping 的间隔。
 	PingInterval = 30 * time.Second
 	// SendBufSize 出站消息 channel 缓冲区大小。
@@ -76,9 +76,7 @@ func (c *Client) readPump(ctx context.Context) {
 	}()
 
 	for {
-		readCtx, readCancel := context.WithTimeout(ctx, PongTimeout)
-		msgType, data, err := c.conn.Read(readCtx)
-		readCancel()
+		msgType, data, err := c.conn.Read(ctx)
 
 		if err != nil {
 			// 正常关闭或 context 取消是预期行为。
@@ -123,7 +121,7 @@ func (c *Client) writePump(ctx context.Context) {
 				return
 			}
 		case <-ticker.C:
-			pingCtx, pingCancel := context.WithTimeout(ctx, 5*time.Second)
+			pingCtx, pingCancel := context.WithTimeout(ctx, PongTimeout)
 			err := c.conn.Ping(pingCtx)
 			pingCancel()
 			if err != nil {
