@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,17 +12,20 @@ import (
 	"time"
 
 	"xlip-relay/internal/config"
+	"xlip-relay/internal/logging"
 	"xlip-relay/internal/server"
 )
 
 func main() {
+	logging.Init()
+
 	configPath := flag.String("config", "config.toml", "配置文件路径")
 	addr := flag.String("addr", "", "监听地址（覆盖配置文件中的 server.addr）")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("加载配置失败: %v", err)
+		logging.Fatal(fmt.Sprintf("加载配置失败：%v", err))
 	}
 
 	// 命令行 flag 覆盖配置文件。
@@ -36,18 +40,18 @@ func main() {
 
 	go func() {
 		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			logging.Fatal(fmt.Sprintf("中继服务发生错误, 正在退出：%v", err))
 		}
 	}()
 
 	sig := <-sigCh
-	log.Printf("收到 %s 信号，正在关闭...", sig)
+	slog.Info(fmt.Sprintf("收到 %s 信号, 正在关闭...", sig))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("shutdown error: %v", err)
+		logging.Fatal(fmt.Sprintf("服务关闭出错：%v", err))
 	}
-	log.Println("服务已停止")
+	slog.Info("服务已停止")
 }

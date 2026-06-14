@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/coder/websocket"
@@ -69,6 +69,19 @@ func (c *Client) Run(ctx context.Context) {
 	c.conn.CloseNow()
 }
 
+// displayDevice 返回当前设备的中文显示字符串，用于日志输出。
+// joined=true 时显示组与设备名，否则标记未加入同步组。
+func (c *Client) displayDevice() string {
+	if c.joined {
+		name := c.info.DeviceName
+		if name == "" {
+			name = c.info.DeviceID
+		}
+		return fmt.Sprintf("组「%s」的设备「%s」", c.info.GroupID, name)
+	}
+	return fmt.Sprintf("设备「%s」(未加入同步组)", c.deviceID)
+}
+
 // readPump 从 WebSocket 连接读取消息。
 func (c *Client) readPump(ctx context.Context) {
 	defer func() {
@@ -83,7 +96,7 @@ func (c *Client) readPump(ctx context.Context) {
 			if ctx.Err() != nil {
 				return
 			}
-			log.Printf("read error: %v", err)
+			slog.Info(fmt.Sprintf("%s 离线(读取失败：%v)", c.displayDevice(), err))
 			return
 		}
 
@@ -93,7 +106,7 @@ func (c *Client) readPump(ctx context.Context) {
 		}
 
 		if err := c.handleMessage(data); err != nil {
-			log.Printf("handle message error: %v", err)
+			slog.Warn(fmt.Sprintf("%s 消息处理失败：%v", c.displayDevice(), err))
 			return
 		}
 	}
@@ -117,7 +130,7 @@ func (c *Client) writePump(ctx context.Context) {
 			err := c.conn.Write(writeCtx, websocket.MessageText, msg)
 			writeCancel()
 			if err != nil {
-				log.Printf("write error: %v", err)
+				slog.Info(fmt.Sprintf("%s 推送消息失败, 已断开连接(%v)", c.displayDevice(), err))
 				return
 			}
 		case <-ticker.C:
@@ -125,7 +138,7 @@ func (c *Client) writePump(ctx context.Context) {
 			err := c.conn.Ping(pingCtx)
 			pingCancel()
 			if err != nil {
-				log.Printf("ping error: %v", err)
+				slog.Info(fmt.Sprintf("%s 长时间无响应, 已判定离线(%v)", c.displayDevice(), err))
 				return
 			}
 		case <-ctx.Done():
@@ -181,7 +194,7 @@ func (c *Client) sendError(code, message string) {
 	errMsg := protocol.NewErrorMsg(code, message)
 	data, err := json.Marshal(errMsg)
 	if err != nil {
-		log.Printf("error marshaling error message: %v", err)
+		slog.Warn(fmt.Sprintf("%s 错误消息序列化失败(理论不应发生, 请反馈 bug)：%v", c.displayDevice(), err))
 		return
 	}
 

@@ -2,7 +2,8 @@ package server
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/coder/websocket"
@@ -42,7 +43,7 @@ func New(cfg *config.Config) *Server {
 
 // Start 启动 HTTP 服务，阻塞直到服务退出。
 func (s *Server) Start() error {
-	log.Printf("relay 正在监听 %s", s.httpServer.Addr)
+	slog.Info(fmt.Sprintf("中继服务正在监听 %s", s.httpServer.Addr))
 	return s.httpServer.ListenAndServe()
 }
 
@@ -63,12 +64,12 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// WS 升级前认证。
 	allowed, err := s.authenticator.Authenticate(deviceID)
 	if err != nil {
-		log.Printf("认证失败 device_id=%s: %v", deviceID, err)
+		slog.Warn(fmt.Sprintf("设备「%s」认证失败(鉴权服务异常：%v)", deviceID, err))
 		http.Error(w, "authentication error", http.StatusServiceUnavailable)
 		return
 	}
 	if !allowed {
-		log.Printf("认证拒绝 device_id=%s", deviceID)
+		slog.Info(fmt.Sprintf("设备「%s」未获得授权, 连接已拒绝", deviceID))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -77,7 +78,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		OriginPatterns: []string{"*"},
 	})
 	if err != nil {
-		log.Printf("websocket accept error: %v", err)
+		slog.Warn(fmt.Sprintf("WebSocket 握手失败：%v", err))
 		return
 	}
 

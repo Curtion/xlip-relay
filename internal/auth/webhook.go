@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"xlip-relay/internal/config"
+	"xlip-relay/internal/logging"
 )
 
 // cacheEntry 是 LRU 缓存中的条目。
@@ -42,7 +42,7 @@ type WebhookAuth struct {
 func NewWebhookAuth(cfg config.WebhookConfig) *WebhookAuth {
 	cache, err := lru.New[string, *cacheEntry](256)
 	if err != nil {
-		log.Fatalf("创建 LRU 缓存失败: %v", err)
+		logging.Fatal(fmt.Sprintf("创建 LRU 缓存失败：%v", err))
 	}
 
 	return &WebhookAuth{

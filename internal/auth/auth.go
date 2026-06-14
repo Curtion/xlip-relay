@@ -1,7 +1,8 @@
 package auth
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 
 	"xlip-relay/internal/config"
 )
@@ -20,16 +21,16 @@ func (noneAuth) Authenticate(string) (bool, error) { return true, nil }
 func NewAuthenticator(cfg *config.AuthConfig) Authenticator {
 	switch cfg.Mode {
 	case "tokens":
-		log.Printf("认证模式: 静态白名单 (%d 台设备)", len(cfg.Tokens))
+		slog.Info(fmt.Sprintf("认证模式：静态白名单(%d 台设备)", len(cfg.Tokens)))
 		return NewTokenAuth(cfg.Tokens)
 	case "webhook":
-		log.Printf("认证模式: Webhook (%s)", cfg.Webhook.URL)
+		slog.Info(fmt.Sprintf("认证模式：Webhook(%s)", cfg.Webhook.URL))
 		return NewWebhookAuth(cfg.Webhook)
 	case "none":
-		log.Println("认证模式: 无认证")
+		slog.Info("认证模式：无认证")
 		return noneAuth{}
 	default:
-		log.Printf("未知认证模式 %q，回退到无认证", cfg.Mode)
+		slog.Warn(fmt.Sprintf("认证模式配置「%q」不支持, 已回退到无认证", cfg.Mode))
 		return noneAuth{}
 	}
 }

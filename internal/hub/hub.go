@@ -2,7 +2,8 @@ package hub
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
+	"log/slog"
 	"sync"
 
 	"xlip-relay/internal/protocol"
@@ -83,7 +84,7 @@ func (h *Hub) Register(ci *ClientInfo, msg protocol.JoinGroupMsg) {
 	}
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
-		log.Printf("error marshaling join_group_resp: %v", err)
+		slog.Warn(fmt.Sprintf("设备「%s」加入组「%s」响应序列化失败(理论不应发生)：%v", msg.DeviceID, msg.GroupID, err))
 		return
 	}
 	ci.Send <- respBytes
@@ -98,7 +99,7 @@ func (h *Hub) Register(ci *ClientInfo, msg protocol.JoinGroupMsg) {
 	}
 	onlineBytes, err := json.Marshal(onlineMsg)
 	if err != nil {
-		log.Printf("error marshaling device_online: %v", err)
+		slog.Warn(fmt.Sprintf("广播设备「%s」上线消息序列化失败(理论不应发生)：%v", msg.DeviceID, err))
 		return
 	}
 	h.broadcastToGroup(msg.GroupID, msg.DeviceID, onlineBytes)
@@ -134,7 +135,7 @@ func (h *Hub) Unregister(ci *ClientInfo) {
 	}
 	offlineBytes, err := json.Marshal(offlineMsg)
 	if err != nil {
-		log.Printf("error marshaling device_offline: %v", err)
+		slog.Warn(fmt.Sprintf("广播设备「%s」离线消息序列化失败(理论不应发生)：%v", ci.DeviceID, err))
 		return
 	}
 	h.broadcastToGroup(groupID, ci.DeviceID, offlineBytes)
