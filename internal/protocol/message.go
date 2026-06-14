@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// 消息类型常量。
 const (
 	TypeJoinGroup     = "join_group"
 	TypeJoinGroupResp = "join_group_resp"
@@ -16,7 +15,6 @@ const (
 	TypeError         = "error"
 )
 
-// 错误码常量。
 const (
 	CodeAuthFailed     = "auth_failed"
 	CodeInvalidMessage = "invalid_message"
@@ -90,8 +88,6 @@ func DecodeMessage(data []byte) (string, any, error) {
 		return "", nil, fmt.Errorf("unknown message type: %s", rt.Type)
 	}
 }
-
-// --- 消息类型 ---
 
 // JoinGroupMsg 设备上线/重连时发送，注册到同步组。
 type JoinGroupMsg struct {

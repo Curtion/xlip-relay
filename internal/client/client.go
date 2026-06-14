@@ -14,12 +14,9 @@ import (
 )
 
 const (
-	// PongTimeout 发送 Ping 后等待 Pong 的超时时间，超时则判定连接已死。
-	PongTimeout = 30 * time.Second
-	// PingInterval 发送 Ping 的间隔。
+	PongTimeout  = 30 * time.Second
 	PingInterval = 30 * time.Second
-	// SendBufSize 出站消息 channel 缓冲区大小。
-	SendBufSize = 64
+	SendBufSize  = 64
 )
 
 // Client 表示一个 WebSocket 连接。
@@ -33,7 +30,6 @@ type Client struct {
 }
 
 // New 为给定的 WebSocket 连接创建 Client。
-// deviceID 来自 WS 升级阶段的 URL query 认证。
 func New(conn *websocket.Conn, h *hub.Hub, deviceID string) *Client {
 	c := &Client{
 		conn:     conn,
@@ -69,8 +65,7 @@ func (c *Client) Run(ctx context.Context) {
 	c.conn.CloseNow()
 }
 
-// displayDevice 返回当前设备的中文显示字符串，用于日志输出。
-// joined=true 时显示组与设备名，否则标记未加入同步组。
+// displayDevice 返回用于日志的设备标识字符串。
 func (c *Client) displayDevice() string {
 	if c.joined {
 		name := c.info.DeviceName
@@ -84,9 +79,7 @@ func (c *Client) displayDevice() string {
 
 // readPump 从 WebSocket 连接读取消息。
 func (c *Client) readPump(ctx context.Context) {
-	defer func() {
-		close(c.send) // 通知 writePump 退出。
-	}()
+	defer close(c.send)
 
 	for {
 		msgType, data, err := c.conn.Read(ctx)
@@ -112,8 +105,7 @@ func (c *Client) readPump(ctx context.Context) {
 	}
 }
 
-// writePump 从 send channel 读取消息并写入 WebSocket 连接。
-// 同时每 PingInterval 发送一次 Ping 帧保持连接活跃。
+// writePump 从 send channel 取消息写入连接，同时周期发送 Ping。
 func (c *Client) writePump(ctx context.Context) {
 	ticker := time.NewTicker(PingInterval)
 	defer ticker.Stop()
@@ -153,7 +145,7 @@ func (c *Client) handleMessage(data []byte) error {
 	msgType, msg, err := protocol.DecodeMessage(data)
 	if err != nil {
 		c.sendError(protocol.CodeInvalidMessage, err.Error())
-		return nil // 格式错误不断开连接。
+		return nil
 	}
 
 	switch msgType {

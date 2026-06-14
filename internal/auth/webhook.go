@@ -58,16 +58,13 @@ func NewWebhookAuth(cfg config.WebhookConfig) *WebhookAuth {
 // Authenticate 通过 Webhook 验证 device_id。
 // 先查 LRU 缓存，未命中则请求 Auth Server。
 func (w *WebhookAuth) Authenticate(deviceID string) (bool, error) {
-	// 查缓存。
 	if entry, ok := w.cache.Get(deviceID); ok {
 		if time.Now().Before(entry.expireAt) {
 			return entry.allowed, nil
 		}
-		// 过期，移除并继续验证。
 		w.cache.Remove(deviceID)
 	}
 
-	// 请求 Auth Server。
 	reqBody := webhookRequest{DeviceID: deviceID}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -94,7 +91,6 @@ func (w *WebhookAuth) Authenticate(deviceID string) (bool, error) {
 		return false, fmt.Errorf("解析 Auth Server 响应失败: %w", err)
 	}
 
-	// 写入缓存。
 	w.cache.Add(deviceID, &cacheEntry{
 		allowed:  result.Allowed,
 		expireAt: time.Now().Add(w.cacheTTL),

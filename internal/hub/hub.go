@@ -42,7 +42,6 @@ func New() *Hub {
 // Register 将客户端添加到同步组。
 // 向客户端发送 join_group_resp，并向同组其他设备广播 device_online。
 func (h *Hub) Register(ci *ClientInfo, msg protocol.JoinGroupMsg) {
-	// 更新客户端信息。
 	ci.DeviceID = msg.DeviceID
 	ci.DeviceName = msg.DeviceName
 	ci.GroupID = msg.GroupID
@@ -72,7 +71,6 @@ func (h *Hub) Register(ci *ClientInfo, msg protocol.JoinGroupMsg) {
 	latestClipboard := g.latestClipboard
 	h.mu.Unlock()
 
-	// 构建 join_group_resp。
 	knownDevices := h.getOtherDevices(msg.GroupID, msg.DeviceID)
 
 	resp := protocol.JoinGroupRespMsg{
@@ -89,7 +87,6 @@ func (h *Hub) Register(ci *ClientInfo, msg protocol.JoinGroupMsg) {
 	}
 	ci.Send <- respBytes
 
-	// 向同组其他设备广播 device_online。
 	onlineMsg := protocol.DeviceOnlineMsg{
 		Type:       protocol.TypeDeviceOnline,
 		GroupID:    msg.GroupID,

@@ -68,7 +68,6 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
-	// 填充默认值。
 	if cfg.Server.Addr == "" {
 		cfg.Server.Addr = ":8080"
 	}
