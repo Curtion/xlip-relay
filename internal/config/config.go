@@ -16,6 +16,8 @@ type Config struct {
 // ServerConfig 包含 HTTP 服务配置。
 type ServerConfig struct {
 	Addr string `toml:"addr"`
+	// MaxMessageSize 单条 WebSocket 消息允许的最大字节数。
+	MaxMessageSize int64 `toml:"max_message_size"`
 }
 
 // AuthConfig 包含认证相关配置。
@@ -36,7 +38,8 @@ type WebhookConfig struct {
 func Default() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Addr: ":8080",
+			Addr:           ":8080",
+			MaxMessageSize: 16 << 20, // 16 MiB
 		},
 		Auth: AuthConfig{
 			Mode:   "none",
@@ -68,6 +71,9 @@ func Load(path string) (*Config, error) {
 	// 填充默认值。
 	if cfg.Server.Addr == "" {
 		cfg.Server.Addr = ":8080"
+	}
+	if cfg.Server.MaxMessageSize <= 0 {
+		cfg.Server.MaxMessageSize = 16 << 20
 	}
 	if cfg.Auth.Webhook.CacheTTL == 0 {
 		cfg.Auth.Webhook.CacheTTL = 300

@@ -2,6 +2,8 @@
 
 [server]
 addr = ":19090"
+# 单条 WebSocket 消息允许的最大字节数, 默认 16 MiB (16777216)。
+# max_message_size = 16777216
 
 [auth]
 mode = "none" # "tokens" | "webhook" | "none"

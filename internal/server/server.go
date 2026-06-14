@@ -16,9 +16,10 @@ import (
 
 // Server 是 Relay HTTP/WebSocket 服务。
 type Server struct {
-	hub           *hub.Hub
-	httpServer    *http.Server
-	authenticator auth.Authenticator
+	hub            *hub.Hub
+	httpServer     *http.Server
+	authenticator  auth.Authenticator
+	maxMessageSize int64
 }
 
 // New 创建一个监听指定地址的 Server。
@@ -27,8 +28,9 @@ func New(cfg *config.Config) *Server {
 	authenticator := auth.NewAuthenticator(&cfg.Auth)
 
 	s := &Server{
-		hub:           h,
-		authenticator: authenticator,
+		hub:            h,
+		authenticator:  authenticator,
+		maxMessageSize: cfg.Server.MaxMessageSize,
 		httpServer: &http.Server{
 			Addr: cfg.Server.Addr,
 		},
@@ -81,6 +83,8 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		slog.Warn(fmt.Sprintf("WebSocket 握手失败：%v", err))
 		return
 	}
+
+	conn.SetReadLimit(s.maxMessageSize)
 
 	c := client.New(conn, s.hub, deviceID)
 	go c.Run(context.Background())
