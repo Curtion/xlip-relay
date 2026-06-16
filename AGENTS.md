@@ -5,10 +5,10 @@
 xlip-relay 是 xlip 剪贴板同步的中继服务器,在多设备间路由加密剪贴板数据。Relay **不存储密钥、不解密内容**,仅做密文转发和设备在线状态管理。
 
 - 语言: Go 1.26+
-- 外部依赖: 
-   - `github.com/coder/websocket`
-   - `github.com/pelletier/go-toml/v2`
-   - `github.com/hashicorp/golang-lru/v2`
+- 外部依赖:
+  - `github.com/coder/websocket`
+  - `github.com/pelletier/go-toml/v2`
+  - `github.com/hashicorp/golang-lru/v2`
 - 日志: `log/slog` 结构化日志,通过 `internal/logging` 初始化
 
 ## 构建 & 运行
