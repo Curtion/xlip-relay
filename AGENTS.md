@@ -17,7 +17,6 @@ cd xlip-relay && go build -o relay .
 # 运行（默认读取 config.toml，监听 :8080）
 go run main.go
 go run main.go -config /path/to/config.toml
-go run main.go -addr :9090
 
 # 代码检查
 go vet ./...

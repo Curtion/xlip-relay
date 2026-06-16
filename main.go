@@ -20,17 +20,11 @@ func main() {
 	logging.Init()
 
 	configPath := flag.String("config", "config.toml", "配置文件路径")
-	addr := flag.String("addr", "", "监听地址(覆盖配置文件中的 server.addr)")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		logging.Fatal(fmt.Sprintf("加载配置失败：%v", err))
-	}
-
-	// 命令行 flag 覆盖配置文件。
-	if *addr != "" {
-		cfg.Server.Addr = *addr
 	}
 
 	srv := server.New(cfg)
