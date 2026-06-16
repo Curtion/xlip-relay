@@ -63,9 +63,9 @@ jobs:
           # 打包：非 windows 用 tar.gz，windows 用 zip
           ARCHIVE="relay_${VERSION}_${GOOS}_${GOARCH}"
           if [ "${GOOS}" = "windows" ]; then
-            zip "${ARCHIVE}.zip" "relay${EXT}"
+            zip "${ARCHIVE}.zip" "relay${EXT}" config.toml
           else
-            tar -czf "${ARCHIVE}.tar.gz" "relay${EXT}"
+            tar -czf "${ARCHIVE}.tar.gz" "relay${EXT}" config.toml
           fi
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
 
