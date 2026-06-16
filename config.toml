@@ -15,6 +15,6 @@ mode = "none" # "tokens" | "webhook" | "none"
 
 # Webhook 动态验证模式
 # [auth.webhook]
-# url = "https://auth.xlip.com/api/check-device"
+# url = "https://example.com/api/check-device"
 # cache_ttl = 300    # 缓存有效期（秒）
 # timeout = 3        # 请求超时（秒）
