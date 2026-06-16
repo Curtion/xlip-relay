@@ -1,0 +1,29 @@
+# 版本控制
+.git
+.gitignore
+
+# 文档
+*.md
+docs/
+
+# Docker 自身(避免被加入构建上下文)
+**/Dockerfile
+**/docker-compose*.yml
+.dockerignore
+
+# 本地构建产物
+relay
+relay.exe
+*.exe
+*.test
+*.out
+
+# 编辑器/IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
