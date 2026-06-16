@@ -20,7 +20,7 @@ func main() {
 	logging.Init()
 
 	configPath := flag.String("config", "config.toml", "配置文件路径")
-	addr := flag.String("addr", "", "监听地址（覆盖配置文件中的 server.addr）")
+	addr := flag.String("addr", "", "监听地址(覆盖配置文件中的 server.addr)")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
