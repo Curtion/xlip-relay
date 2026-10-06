@@ -1,70 +1,34 @@
 # xlip-relay Agent Guidelines
 
-## 项目概述
+xlip 剪贴板同步中继服务器。**不存储密钥、不解密内容**, 负责密文转发、设备在线状态及每组最新消息的内存缓存, 加入组时返回缓存。
 
-xlip-relay 是 xlip 剪贴板同步的中继服务器,在多设备间路由加密剪贴板数据。Relay **不存储密钥、不解密内容**,仅做密文转发和设备在线状态管理。
+## 构建与配置
 
-- 语言: Go 1.26+
-- 外部依赖:
-  - `github.com/coder/websocket`
-  - `github.com/pelletier/go-toml/v2`
-  - `github.com/hashicorp/golang-lru/v2`
-- 日志: `log/slog` 结构化日志,通过 `internal/logging` 初始化
-
-## 构建 & 运行
+Go 版本及依赖以 [go.mod](go.mod) 为准。在仓库根目录执行：
 
 ```bash
-cd xlip-relay && go build -o relay .
-go run main.go [-config config.toml]   # 默认监听 :8080,无配置文件时以 mode=none 运行
+go build -o relay .
+go run . -config config.toml
 go vet ./... && go test ./...
 ```
 
-`LOG_LEVEL` 环境变量控制日志级别(debug/info/warn/error),默认 `info`。
+- 默认读取工作目录的 [config.toml](config.toml), 随仓库配置监听 `:19090`；文件不存在时使用内置默认值 `:8080`、`mode=none`。
+- 修改配置或认证模式时查阅 [config.toml](config.toml) 和 [config.go](internal/config/config.go)；`max_message_size` 可配置, 心跳和缓冲区参数见 [client.go](internal/client/client.go)。
+- `LOG_LEVEL` 支持 `debug/info/warn/error`, 默认 `info`。
 
-## 架构
+## 开发约束
 
-```
-internal/
-  config/      TOML 配置解析
-  logging/     slog logger 初始化 + Fatal 封装
-  auth/        认证接口 + none/devices/webhook 三种实现
-  server/      HTTP → WebSocket 升级(升级前认证)
-  client/      单 WS 连接读写协程 + Ping/Pong 心跳
-  hub/         同步组管理 + 消息广播
-  protocol/    消息类型定义 + 两步 JSON 反序列化
-```
+- 使用 `log/slog`, 由 `internal/logging.Init()` 初始化；致命错误用 `logging.Fatal`, 不用标准库 `log`。
+- 注释和日志使用中文, 括号和逗号使用半角, 逗号后加空格。
+- 消息先解析 `type`, 再解码具体结构；格式错误返回 `invalid_message` 且不断开, IO 错误结束连接。协议定义和错误码见 [message.go](internal/protocol/message.go)。
+- `Hub` 用 `sync.RWMutex` 保护索引, 广播先快照接收者再释放锁；Client 读写分离。
+- 广播和错误响应在发送队列满时静默丢弃；加入组响应目前为阻塞发送。
 
-核心流程: `Server.handleWebSocket` → WS 升级前认证 device_id → `Client.Run` → `readPump` 解码 → `Hub` 路由/广播 → `writePump` 写出 + Ping 心跳。
+## 认证与路由
 
-消息协议详见 [doc/protocol.md](../doc/protocol.md) 和 [doc/sync-architecture.md](../doc/sync-architecture.md)。
+- `/ws?device_id=...` 在 WebSocket 升级前认证：缺少 ID 或拒绝返回 HTTP 401, 认证器内部错误返回 HTTP 503。
+- `join_group.device_id` 必须匹配连接身份, 否则尝试发送错误后断开。
+- 成功解码的非 `join_group` 消息必须先加入组, 否则返回 `auth_failed`；非文本帧直接忽略。
+- `clipboard_sync` 的组 ID 与连接所属组不一致时静默丢弃。
+- 未知认证模式目前会回退到 `none`, 配置拼写错误不会阻止启动。
 
-## 配置
-
-配置项与认证模式(none/devices/webhook)的完整说明见 [config.toml](config.toml)(含逐行注释)。通过 `-config` flag 指定路径。
-
-## 认证
-
-客户端通过 URL query 传递 device_id(`ws://relay:8080/ws?device_id=xxx`),认证在 WS 升级阶段完成:
-
-- `device_id` 缺失或认证拒绝(`allowed=false`)→ HTTP 401,不升级 WS
-- 认证器内部错误(如 Webhook 调用失败)→ HTTP 503
-- `join_group` 中的 `device_id` 必须与 URL query 中的 device_id 一致,否则 error + 断开
-
-## 编码规范
-
-- 使用 `log/slog`(由 `internal/logging.Init()` 统一初始化);fatal 退出用 `logging.Fatal`,禁止标准库 `log`
-- 中文注释和日志
-- 错误处理: 格式错误不断开(`return nil`),IO 错误断开(`return`)
-- 并发安全: `Hub` 用 `sync.RWMutex`,广播时先快照接收者列表再释放锁
-- Client 读写分离: `readPump` 关闭 `send` channel 通知 `writePump` 退出
-- 发送 channel 满时静默丢弃(`select { case c.send <- data: default: }`)
-- 消息反序列化两步法: 先提取 `type` 字段,再 switch 到具体 struct
-
-## 注意事项
-
-- 客户端必须先 `join_group` 才能发送其他消息,否则返回 `auth_failed`
-- `clipboard_sync` 校验 `ci.GroupID == msg.GroupID`,防止跨组路由
-- 设备重连时 `Hub.Register` 自动将其从旧组移除再注册到新组
-- `hub.ClientInfo.Send` 是只写 channel(`chan<- []byte`),Client 内部用双向 channel 暴露给 Hub
-- 错误码常量集中在 `internal/protocol/message.go`:`auth_failed` / `invalid_message` / `internal_error`
-- 心跳参数(Ping 间隔/Pong 超时/缓冲区大小)、WebSocket 读限制(`max_message_size`)均由对应代码常量定义,具体值见源文件
