@@ -27,7 +27,7 @@ go vet ./... && go test ./...
 internal/
   config/      TOML 配置解析
   logging/     slog logger 初始化 + Fatal 封装
-  auth/        认证接口 + none/tokens/webhook 三种实现
+  auth/        认证接口 + none/devices/webhook 三种实现
   server/      HTTP → WebSocket 升级(升级前认证)
   client/      单 WS 连接读写协程 + Ping/Pong 心跳
   hub/         同步组管理 + 消息广播
@@ -40,7 +40,7 @@ internal/
 
 ## 配置
 
-配置项与认证模式(none/tokens/webhook)的完整说明见 [config.toml](config.toml)(含逐行注释)。通过 `-config` flag 指定路径。
+配置项与认证模式(none/devices/webhook)的完整说明见 [config.toml](config.toml)(含逐行注释)。通过 `-config` flag 指定路径。
 
 ## 认证
 

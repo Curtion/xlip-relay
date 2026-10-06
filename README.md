@@ -17,7 +17,7 @@ Device A (Xlip) ──WSS/E2EE──► Relay (纯路由) ──WSS/E2EE──�
 
 - **纯密文路由**: AES-256-GCM 密文转发, Relay 无法解密
 - **单二进制零依赖**: Go 编写, 静态编译, 裸机直接运行
-- **三种认证模式**: `none`(开放) / `tokens`(静态白名单) / `webhook`(动态验证)
+- **三种认证模式**: `none`(开放) / `devices`(静态白名单) / `webhook`(动态验证)
 - **多设备同步组**: 支持 N 台设备组成一个同步组, 实时广播
 - **心跳保活**: Ping/Pong 自动维持长连接, 断线自动清理
 
@@ -62,11 +62,12 @@ docker compose up -d
 addr = ":19090"
 
 [auth]
-mode = "none" # "tokens" | "webhook" | "none"
+mode = "none" # "devices" | "webhook" | "none"
 
-# 静态白名单模式
-# [auth.tokens]
-# "550e8400-e29b-41d4-a716-446655440000"    # Home Laptop
+# 静态白名单模式: 允许连接的 device_id 列表 (即 Xlip 客户端设置页显示的 Device ID)
+# devices = [
+#   "550e8400-e29b-41d4-a716-446655440000",    # Home Laptop
+# ]
 
 # Webhook 动态验证模式
 # [auth.webhook]

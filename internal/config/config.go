@@ -22,8 +22,8 @@ type ServerConfig struct {
 
 // AuthConfig 包含认证相关配置。
 type AuthConfig struct {
-	Mode    string        `toml:"mode"`   // "tokens" | "webhook" | "none"
-	Tokens  []string      `toml:"tokens"` // 允许连接的 device_id 白名单
+	Mode    string        `toml:"mode"`    // "devices" | "webhook" | "none"
+	Devices []string      `toml:"devices"` // 允许连接的 device_id 白名单
 	Webhook WebhookConfig `toml:"webhook"`
 }
 
@@ -42,8 +42,8 @@ func Default() *Config {
 			MaxMessageSize: 16 << 20, // 16 MiB
 		},
 		Auth: AuthConfig{
-			Mode:   "none",
-			Tokens: []string{},
+			Mode:    "none",
+			Devices: []string{},
 			Webhook: WebhookConfig{
 				CacheTTL: 300,
 				Timeout:  3,
@@ -77,8 +77,8 @@ func Load(path string) (*Config, error) {
 	if cfg.Auth.Webhook.Timeout == 0 {
 		cfg.Auth.Webhook.Timeout = 3
 	}
-	if cfg.Auth.Tokens == nil {
-		cfg.Auth.Tokens = []string{}
+	if cfg.Auth.Devices == nil {
+		cfg.Auth.Devices = []string{}
 	}
 
 	return cfg, nil

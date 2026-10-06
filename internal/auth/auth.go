@@ -20,9 +20,9 @@ func (noneAuth) Authenticate(string) (bool, error) { return true, nil }
 // NewAuthenticator 根据配置创建对应的认证器。
 func NewAuthenticator(cfg *config.AuthConfig) Authenticator {
 	switch cfg.Mode {
-	case "tokens":
-		slog.Info(fmt.Sprintf("认证模式：静态白名单(%d 台设备)", len(cfg.Tokens)))
-		return NewTokenAuth(cfg.Tokens)
+	case "devices":
+		slog.Info(fmt.Sprintf("认证模式：静态白名单(%d 台设备)", len(cfg.Devices)))
+		return NewDeviceAuth(cfg.Devices)
 	case "webhook":
 		slog.Info(fmt.Sprintf("认证模式：Webhook(%s)", cfg.Webhook.URL))
 		return NewWebhookAuth(cfg.Webhook)
