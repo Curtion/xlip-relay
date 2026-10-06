@@ -56,13 +56,15 @@ func NewWebhookAuth(cfg config.WebhookConfig) *WebhookAuth {
 }
 
 // Authenticate 通过 Webhook 验证 device_id。
-// 先查 LRU 缓存，未命中则请求 Auth Server。
+// cache_ttl > 0 时先查 LRU 缓存, 未命中则请求 Auth Server; 为 0 时每次都请求。
 func (w *WebhookAuth) Authenticate(deviceID string) (bool, error) {
-	if entry, ok := w.cache.Get(deviceID); ok {
-		if time.Now().Before(entry.expireAt) {
-			return entry.allowed, nil
+	if w.cacheTTL > 0 {
+		if entry, ok := w.cache.Get(deviceID); ok {
+			if time.Now().Before(entry.expireAt) {
+				return entry.allowed, nil
+			}
+			w.cache.Remove(deviceID)
 		}
-		w.cache.Remove(deviceID)
 	}
 
 	reqBody := webhookRequest{DeviceID: deviceID}
@@ -91,10 +93,12 @@ func (w *WebhookAuth) Authenticate(deviceID string) (bool, error) {
 		return false, fmt.Errorf("解析 Auth Server 响应失败: %w", err)
 	}
 
-	w.cache.Add(deviceID, &cacheEntry{
-		allowed:  result.Allowed,
-		expireAt: time.Now().Add(w.cacheTTL),
-	})
+	if w.cacheTTL > 0 {
+		w.cache.Add(deviceID, &cacheEntry{
+			allowed:  result.Allowed,
+			expireAt: time.Now().Add(w.cacheTTL),
+		})
+	}
 
 	return result.Allowed, nil
 }

@@ -30,7 +30,7 @@ type AuthConfig struct {
 // WebhookConfig 包含 Webhook 动态认证配置。
 type WebhookConfig struct {
 	URL      string `toml:"url"`       // Auth Server 验证接口 URL
-	CacheTTL int    `toml:"cache_ttl"` // 缓存有效期（秒），默认 300
+	CacheTTL int    `toml:"cache_ttl"` // 缓存有效期（秒），默认 300, 0 表示禁用缓存
 	Timeout  int    `toml:"timeout"`   // HTTP 请求超时（秒），默认 3
 }
 
@@ -73,9 +73,6 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Server.MaxMessageSize <= 0 {
 		cfg.Server.MaxMessageSize = 16 << 20
-	}
-	if cfg.Auth.Webhook.CacheTTL == 0 {
-		cfg.Auth.Webhook.CacheTTL = 300
 	}
 	if cfg.Auth.Webhook.Timeout == 0 {
 		cfg.Auth.Webhook.Timeout = 3
